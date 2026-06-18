@@ -1,0 +1,38 @@
+# Gradle
+.gradle/
+.gradle-user-home/
+build/
+*/build/
+
+# Local Android config
+local.properties
+git rm -r --cached .
+# Android Studio / IntelliJ
+.idea/
+*.iml
+
+# Android build outputs
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Native / generated symbols
+*.so.dbg
+*.map
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Signing / secrets
+*.jks
+*.keystore
+keystore.properties
