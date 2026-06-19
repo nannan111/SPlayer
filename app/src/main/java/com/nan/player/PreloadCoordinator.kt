@@ -1,5 +1,6 @@
 package com.nan.player
 
+import android.annotation.SuppressLint
 import android.util.Log
 import com.nannan.superplayer.player.PlayerManager
 import com.nannan.superplayer.player.VideoDownloadManager
@@ -13,11 +14,13 @@ object PreloadCoordinator {
     private const val DISK_PRELOAD_SECONDS = 8
     private const val MEMORY_PRELOAD_SECONDS = 4
     private const val PRELOAD_BITRATE = 800L * 1024L
-    private const val MAX_CONCURRENT_PRELOADS = 1
+    private const val MAX_CONCURRENT_DISK_PRELOADS = 2
+    private const val MAX_CONCURRENT_MEMORY_PRELOADS = 2
 
     private val diskTasks = Collections.synchronizedSet(mutableSetOf<String>())
     private val memoryTasks = Collections.synchronizedSet(mutableSetOf<String>())
-    @Volatile private var executor: ExecutorService? = null
+    @Volatile private var diskExecutor: ExecutorService? = null
+    @Volatile private var memoryExecutor: ExecutorService? = null
 
     fun preloadVideoListToDisk(videos: List<VideoItem>): Int {
         val urls = videos
@@ -35,23 +38,30 @@ object PreloadCoordinator {
         preloadWindow(videos, index, radius = 1)
     }
 
+    fun isPreloaded(item: VideoItem): Boolean {
+        return isPreloaded(item.url)
+    }
+
+    fun isPreloaded(url: String): Boolean {
+        if (!isRemote(url)) return true
+        if (VideoDownloadManager.isDownloaded(url)) return true
+        return try {
+            PlayerManager.isPreload(url)
+        } catch (error: Throwable) {
+            Log.w(TAG, "Check preload failed: $url", error)
+            false
+        }
+    }
+
+    @SuppressLint("SuspiciousIndentation")
     fun preloadWindow(videos: List<VideoItem>, index: Int, radius: Int) {
         if (videos.isEmpty() || index !in videos.indices || radius <= 0) return
-
-        val first = (index - radius).coerceAtLeast(0)
-        val last = (index + radius).coerceAtMost(videos.lastIndex)
-        val candidateIndexes = (first..last)
-            .filter { it != index }
-            .sortedWith(compareBy<Int> { kotlin.math.abs(it - index) }.thenBy { it })
-
-        candidateIndexes
-            .filter { it in videos.indices }
-            .map { videos[it] }
-            .filter { it.isHttp }
-            .forEach { item ->
-                preloadToMemory(item.url)
+            videos.forEach { item->
+            if(item.isHttp){
+                Log.i("SPlayerPreload","start:${item.url}")
                 preloadToDisk(item.url)
             }
+        }
     }
 
     fun preloadToDisk(url: String) {
@@ -62,7 +72,7 @@ object PreloadCoordinator {
         }
         if (!diskTasks.add(url)) return
 
-        execute {
+        executeDisk {
             try {
                 Log.i(TAG, "Disk preload start: $url")
                 PlayerManager.preloadToDisk(url, DISK_PRELOAD_SECONDS, PRELOAD_BITRATE)
@@ -79,7 +89,7 @@ object PreloadCoordinator {
         if (!isRemote(url)) return
         if (!memoryTasks.add(url)) return
 
-        execute {
+        executeMemory {
             try {
                 Log.i(TAG, "Memory preload start: $url")
                 PlayerManager.preloadVideo(url, MEMORY_PRELOAD_SECONDS, PRELOAD_BITRATE)
@@ -92,29 +102,51 @@ object PreloadCoordinator {
     }
 
     fun shutdown() {
-        executor?.shutdownNow()
-        executor = null
+        diskExecutor?.shutdownNow()
+        memoryExecutor?.shutdownNow()
+        diskExecutor = null
+        memoryExecutor = null
         diskTasks.clear()
         memoryTasks.clear()
     }
 
     @Synchronized
-    private fun ensureExecutor(): ExecutorService {
-        val current = executor
+    private fun ensureDiskExecutor(): ExecutorService {
+        val current = diskExecutor
         if (current != null && !current.isShutdown && !current.isTerminated) {
             return current
         }
 
-        return Executors.newFixedThreadPool(MAX_CONCURRENT_PRELOADS).also {
-            executor = it
+        return Executors.newFixedThreadPool(MAX_CONCURRENT_DISK_PRELOADS).also {
+            diskExecutor = it
         }
     }
 
-    private fun execute(task: () -> Unit) {
+    @Synchronized
+    private fun ensureMemoryExecutor(): ExecutorService {
+        val current = memoryExecutor
+        if (current != null && !current.isShutdown && !current.isTerminated) {
+            return current
+        }
+
+        return Executors.newFixedThreadPool(MAX_CONCURRENT_MEMORY_PRELOADS).also {
+            memoryExecutor = it
+        }
+    }
+
+    private fun executeDisk(task: () -> Unit) {
         try {
-            ensureExecutor().execute(task)
+            ensureDiskExecutor().execute(task)
         } catch (error: RejectedExecutionException) {
-            Log.w(TAG, "Preload task rejected", error)
+            Log.w(TAG, "Disk preload task rejected", error)
+        }
+    }
+
+    private fun executeMemory(task: () -> Unit) {
+        try {
+            ensureMemoryExecutor().execute(task)
+        } catch (error: RejectedExecutionException) {
+            Log.w(TAG, "Memory preload task rejected", error)
         }
     }
 

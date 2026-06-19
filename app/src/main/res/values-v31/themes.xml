@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.SPlayer" parent="Base.Theme.SPlayer">
+        <item name="android:windowSplashScreenBackground">#FF000000</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#FF000000</item>
+    </style>
+</resources>

@@ -29,7 +29,7 @@ class WelcomeActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setupImmersiveBars()
         setContentView(createContentView())
-        startDiskWarmup()
+        startCacheWarmup()
         uiHandler.postDelayed(openPlayerRunnable, LAUNCH_DELAY_MS)
     }
 
@@ -90,13 +90,11 @@ class WelcomeActivity : AppCompatActivity() {
         return root
     }
 
-    private fun startDiskWarmup() {
-        val count = PreloadCoordinator.preloadVideoListToDisk(VideoCatalog.videos)
-        statusText.text = if (count > 0) {
-            "Warming disk cache for $count videos..."
-        } else {
-            "Loading local videos..."
-        }
+    private fun startCacheWarmup() {
+//        PreloadCoordinator.preloadToMemory(VideoCatalog.videos[0].url)
+        PreloadCoordinator.preloadWindow(VideoCatalog.videos, INITIAL_VIDEO_INDEX, INITIAL_PRELOAD_RADIUS)
+
+//        PreloadCoordinator.preloadVideoListToDisk(VideoCatalog.videos)
     }
 
     private fun openPlayer() {
@@ -130,5 +128,7 @@ class WelcomeActivity : AppCompatActivity() {
 
     companion object {
         private const val LAUNCH_DELAY_MS = 2_000L
+        private const val INITIAL_VIDEO_INDEX = 0
+        private  var INITIAL_PRELOAD_RADIUS = (VideoCatalog.videos.size-1)
     }
 }

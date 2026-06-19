@@ -15,15 +15,15 @@ object VideoCatalog {
             duration = "00:20"
         ),
         VideoItem(
-            title = "Online oceans",
+            title = "news ",
             description = "HTTP MP4",
-            url = "http://vjs.zencdn.net/v/oceans.mp4",
+            url = "https://hls.cntv.lxdns.com/asp/hls/1200/0303000a/3/default/a8d0c954fc5d4e118611e90db1e42ce9/1200.m3u8",
             duration = "00:20"
         ),
         VideoItem(
             title = "Shandong TV",
             description = "H.264 MP4",
-            url = "https://stream7.iqilu.com/10339/upload_transcode/202002/09/20200209105011F0zPoYzHry.mp4",
+            url = "https://hls.cntv.lxdns.com/asp/hls/450/0303000a/3/default/4410d481e3074b689d0ee61bc5d844f3/450.m3u8",
             duration = "05:32"
         ),
         VideoItem(

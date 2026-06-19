@@ -5,9 +5,11 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.TextView
@@ -19,6 +21,7 @@ import com.nannan.superplayer.player.OnPlayerStateListener
 import com.nannan.superplayer.player.PlayerControllerListener
 import com.nannan.superplayer.player.PlayerGestureController
 import com.nannan.superplayer.player.PlayerState
+import com.nannan.superplayer.player.PlayerZoomMode
 import com.nannan.superplayer.player.SuperPlayer
 import com.nannan.superplayer.player.SuperPlayerView
 import com.nannan.superplayer.player.VideoDownloadManager
@@ -52,8 +55,7 @@ class VideoPageFragment : Fragment() {
     private var resolvedPlayPath: String? = null
 
     private lateinit var loadingBar: ProgressBar
-    private lateinit var loadingText: TextView
-    private lateinit var centerText: TextView
+    private lateinit var centerPlayIcon: ImageView
     private lateinit var indexText: TextView
     private lateinit var titleText: TextView
     private lateinit var descText: TextView
@@ -96,6 +98,7 @@ class VideoPageFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        requestAncestorsDisallowIntercept(requireView(), disallow = false)
         releasePlayback()
         gestureController?.release()
         gestureController = null
@@ -110,7 +113,12 @@ class VideoPageFragment : Fragment() {
         super.onDetach()
     }
 
-    fun setPlaybackActive(active: Boolean, playWhenReady: Boolean, muted: Boolean) {
+    fun setPlaybackActive(
+        active: Boolean,
+        playWhenReady: Boolean,
+        muted: Boolean,
+        allowCreatePlayer: Boolean = true
+    ) {
         if (
             playbackWindowActive == active &&
             playbackActive == playWhenReady &&
@@ -122,13 +130,17 @@ class VideoPageFragment : Fragment() {
 
         Log.i(
             TAG,
-            "setPlaybackActive position=$pagePosition active=$active playWhenReady=$playWhenReady muted=$muted"
+            "setPlaybackActive position=$pagePosition active=$active playWhenReady=$playWhenReady muted=$muted allowCreate=$allowCreatePlayer"
         )
         playbackWindowActive = active
         playbackActive = playWhenReady
         playbackMuted = muted
         if (!active) {
             releasePlayback()
+            return
+        }
+
+        if (!allowCreatePlayer && player == null) {
             return
         }
 
@@ -227,7 +239,7 @@ class VideoPageFragment : Fragment() {
     }
 
     fun resetForPlayback() {
-        centerText.visibility = View.GONE
+        centerPlayIcon.visibility = View.GONE
         seekBar.progress = 0
         currentTimeText.text = "00:00"
         totalTimeText.text = item.duration
@@ -245,7 +257,7 @@ class VideoPageFragment : Fragment() {
             PlayerState.STARTED -> {
                 hideLoading()
                 statusText.text = "Playing"
-                centerText.visibility = View.GONE
+                centerPlayIcon.visibility = View.GONE
             }
             PlayerState.PAUSED -> {
                 hideLoading()
@@ -268,14 +280,6 @@ class VideoPageFragment : Fragment() {
     fun renderLoading(isLoading: Boolean, reason: LoadingReason, state: PlayerState) {
         if (isLoading) {
             loadingBar.visibility = View.VISIBLE
-            loadingText.visibility = View.VISIBLE
-            loadingText.text = when (reason) {
-                LoadingReason.PREPARING -> "Preparing"
-                LoadingReason.SEEKING -> "Seeking"
-                LoadingReason.BUFFERING,
-                LoadingReason.SURFACE_ATTACHING -> "Buffering"
-                LoadingReason.NONE -> "Loading"
-            }
         } else {
             hideLoading()
             when (state) {
@@ -330,16 +334,14 @@ class VideoPageFragment : Fragment() {
     }
 
     fun showCenterState(isPlaying: Boolean) {
-        centerText.text = if (isPlaying) "" else "Play"
-        centerText.visibility = if (isPlaying) View.GONE else View.VISIBLE
+        centerPlayIcon.visibility = if (isPlaying) View.GONE else View.VISIBLE
     }
 
     private fun bindViews(root: View) {
         playerView = root.findViewById(R.id.playerView)
         resizeSurfaceView(DEFAULT_VIDEO_WIDTH, DEFAULT_VIDEO_HEIGHT)
         loadingBar = root.findViewById(R.id.loadingBar)
-        loadingText = root.findViewById(R.id.loadingText)
-        centerText = root.findViewById(R.id.centerText)
+        centerPlayIcon = root.findViewById(R.id.centerPlayIcon)
         indexText = root.findViewById(R.id.indexText)
         titleText = root.findViewById(R.id.titleText)
         descText = root.findViewById(R.id.descText)
@@ -351,10 +353,25 @@ class VideoPageFragment : Fragment() {
 
         val touchLayer = root.findViewById<View>(R.id.clickLayer)
         val renderView = requireNotNull(playerView)
-        gestureController = PlayerGestureController(
+        val controller = PlayerGestureController(
             renderView = renderView,
-            onTap = { callbacks?.onPageTap(pagePosition) }
-        ).also { it.attachTo(touchLayer) }
+            zoomMode = PlayerZoomMode.VIEW_SCALE,
+            onOpenGLScaleChanged = { scale ->
+                player?.setZoomScale(scale)
+            },
+            onOpenGLTranslationChanged = { tx, ty, width, height ->
+                player?.setTranslation(tx, ty, width, height)
+            },
+            onTap = {
+                callbacks?.onPageTap(pagePosition)
+            },
+        )
+        gestureController = controller
+        controller.attachTo(touchLayer)
+        touchLayer.setOnTouchListener { view, event ->
+            handleTouchLayerEvent(view, event)
+            controller.onTouch(view, event)
+        }
         downloadButton.setOnClickListener {
             callbacks?.onDownloadClick(pagePosition)
         }
@@ -542,12 +559,38 @@ class VideoPageFragment : Fragment() {
     }
 
     private fun resetRenderTransform() {
-        playerView?.scaleX = 1f
-        playerView?.scaleY = 1f
-        playerView?.translationX = 0f
-        playerView?.translationY = 0f
+        gestureController?.reset()
         player?.resetZoom()
     }
+
+    private fun handleTouchLayerEvent(source: View, event: MotionEvent) {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                requestAncestorsDisallowIntercept(source, disallow = false)
+            }
+            MotionEvent.ACTION_POINTER_DOWN -> {
+                requestAncestorsDisallowIntercept(source, disallow = true)
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (event.pointerCount > 1) {
+                    requestAncestorsDisallowIntercept(source, disallow = true)
+                }
+            }
+            MotionEvent.ACTION_UP,
+            MotionEvent.ACTION_CANCEL -> {
+                requestAncestorsDisallowIntercept(source, disallow = false)
+            }
+        }
+    }
+
+    private fun requestAncestorsDisallowIntercept(source: View, disallow: Boolean) {
+        var parent = source.parent
+        while (parent != null) {
+            parent.requestDisallowInterceptTouchEvent(disallow)
+            parent = parent.parent
+        }
+    }
+
 
     private fun resolvePlayPath(url: String): String {
         val processedUrl = processAssetsPath(url)
@@ -582,7 +625,6 @@ class VideoPageFragment : Fragment() {
 
     private fun hideLoading() {
         loadingBar.visibility = View.GONE
-        loadingText.visibility = View.GONE
     }
 
     private fun formatTime(ms: Long): String {
@@ -609,6 +651,9 @@ class VideoPageFragment : Fragment() {
         private const val DEFAULT_VIDEO_WIDTH = 16
         private const val DEFAULT_VIDEO_HEIGHT = 9
         private const val ASSET_PREFIX = "file:///android_asset/"
+        private const val CONTROL_PANEL_AUTO_HIDE_MS = 3_000L
+        private const val CONTROL_PANEL_ANIM_MS = 180L
+        private const val CONTROL_PANEL_VISIBLE_ALPHA = 0.8f
 
         fun newInstance(position: Int, item: VideoItem): VideoPageFragment {
             return VideoPageFragment().apply {

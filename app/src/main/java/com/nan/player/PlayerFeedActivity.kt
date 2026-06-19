@@ -2,6 +2,7 @@ package com.nan.player
 
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.Gravity
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -25,6 +26,8 @@ class PlayerFeedActivity : AppCompatActivity(), VideoPageFragment.Callbacks {
     private var surfaceCenterIndex = 0
     private var playbackIndexes: Set<Int> = emptySet()
     private var pageChangeCallback: ViewPager2.OnPageChangeCallback? = null
+    private var scrollState = ViewPager2.SCROLL_STATE_IDLE
+    private var lastPreloadCenterIndex = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,6 +36,7 @@ class PlayerFeedActivity : AppCompatActivity(), VideoPageFragment.Callbacks {
         setupContentView()
 
         currentIndex = savedInstanceState?.getInt(KEY_CURRENT_INDEX)?.coerceIn(videos.indices) ?: 0
+//        preloadAround(currentIndex)
         viewPager.setCurrentItem(currentIndex, false)
         viewPager.post {
             updatePlaybackWindow(currentIndex)
@@ -72,7 +76,8 @@ class PlayerFeedActivity : AppCompatActivity(), VideoPageFragment.Callbacks {
         adapter.fragmentAt(position)?.setPlaybackActive(
             active = position in activeIndexes(surfaceCenterIndex),
             playWhenReady = position in playbackIndexes,
-            muted = position != currentIndex
+            muted = position != currentIndex,
+            allowCreatePlayer = shouldCreatePlayer(position, surfaceCenterIndex)
         )
     }
 
@@ -150,25 +155,20 @@ class PlayerFeedActivity : AppCompatActivity(), VideoPageFragment.Callbacks {
                 positionOffset: Float,
                 positionOffsetPixels: Int
             ) {
-                if (position !in videos.indices) return
-                val centerIndex = if (positionOffset >= 0.5f && position < videos.lastIndex) {
-                    position + 1
-                } else {
-                    position
-                }
-                updatePlaybackWindow(
-                    centerIndex = centerIndex,
-                    playingIndexes = visiblePlaybackIndexes(position, positionOffset)
-                )
+
+
             }
 
             override fun onPageSelected(position: Int) {
-                currentIndex = position
-                PreloadCoordinator.preloadWindow(videos, position, PRELOAD_RADIUS)
-                updatePlaybackWindow(position, setOf(position))
+                preloadAround(position)
+//                if (scrollState == ViewPager2.SCROLL_STATE_IDLE) {
+//                    currentIndex = position
+//                    updatePlaybackWindow(position, setOf(position))
+//                }
             }
 
             override fun onPageScrollStateChanged(state: Int) {
+                scrollState = state
                 if (state == ViewPager2.SCROLL_STATE_IDLE) {
                     currentIndex = viewPager.currentItem
                     updatePlaybackWindow(currentIndex, setOf(currentIndex))
@@ -186,10 +186,49 @@ class PlayerFeedActivity : AppCompatActivity(), VideoPageFragment.Callbacks {
             fragment.setPlaybackActive(
                 active = index in activeIndexes,
                 playWhenReady = index in playbackIndexes,
-                muted = index != centerIndex
+                muted = index != centerIndex,
+                allowCreatePlayer = shouldCreatePlayer(index, centerIndex)
             )
         }
-        PreloadCoordinator.preloadWindow(videos, centerIndex, PRELOAD_RADIUS)
+//        preloadAround(centerIndex)
+    }
+
+    private fun updatePlaybackDuringScroll(position: Int, offset: Float) {
+        val activeIndexes = activeIndexes(surfaceCenterIndex)
+        val visiblePlaybackIndexes = visiblePlaybackIndexes(position, offset)
+        adapter.fragmentsSnapshot().forEach { (index, fragment) ->
+            if (index !in activeIndexes) return@forEach
+
+            val canCreateWithoutJank = shouldCreatePlayer(index, surfaceCenterIndex)
+            val canPlayDuringScroll = index == currentIndex || PreloadCoordinator.isPreloaded(videos[index])
+            fragment.setPlaybackActive(
+                active = true,
+                playWhenReady = index in visiblePlaybackIndexes && canPlayDuringScroll,
+                muted = index != currentIndex,
+                allowCreatePlayer = canCreateWithoutJank
+            )
+        }
+    }
+
+    private fun preloadAround(centerIndex: Int) {
+        Log.i("PlayerFeedActivity","centerIndex=$centerIndex--lastPreloadCenterIndex=$lastPreloadCenterIndex")
+//        if (centerIndex !in videos.indices || lastPreloadCenterIndex == centerIndex) return
+//        lastPreloadCenterIndex = centerIndex
+//        PreloadCoordinator.preloadWindow(videos, centerIndex, PRELOAD_RADIUS)
+        if(centerIndex>lastPreloadCenterIndex){
+            if(videos.size>centerIndex+1) {
+                PreloadCoordinator.preloadToMemory(videos[centerIndex + 1].url)
+            }
+        }else{
+            if(centerIndex-1>-1) {
+                PreloadCoordinator.preloadToMemory(videos[centerIndex - 1].url)
+            }
+        }
+        lastPreloadCenterIndex = centerIndex
+    }
+
+    private fun shouldCreatePlayer(index: Int, centerIndex: Int): Boolean {
+        return index == centerIndex || PreloadCoordinator.isPreloaded(videos[index])
     }
 
     private fun pauseActivePlayers() {

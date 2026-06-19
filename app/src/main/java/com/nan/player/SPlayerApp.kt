@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import com.nannan.superplayer.player.NativePlayer
 import com.nannan.superplayer.player.PlayerManager
+import com.nannan.superplayer.player.PreloadCompletionCallback
 import com.nannan.superplayer.player.VideoDownloadManager
 
 class SPlayerApp : Application() {
@@ -22,6 +23,7 @@ class SPlayerApp : Application() {
         try {
             PlayerManager.nativeInitNetworkLayer(cacheDir.absolutePath)
             PlayerManager.setMaxPlayerPoolSize(FEED_PLAYER_POOL_SIZE)
+            registerPreloadCompletionLogger()
         } catch (error: Throwable) {
             Log.w(TAG, "Network layer init failed", error)
         }
@@ -30,6 +32,25 @@ class SPlayerApp : Application() {
             VideoDownloadManager.init(this)
         } catch (error: Throwable) {
             Log.w(TAG, "Download manager init failed", error)
+        }
+    }
+
+    private fun registerPreloadCompletionLogger() {
+        PlayerManager.setPreloadCompletionCallback(object : PreloadCompletionCallback {
+            override fun onPreloadComplete(url: String, success: Boolean, preloadType: Int) {
+                Log.i(
+                    PRELOAD_TAG,
+                    "complete success=$success type=${preloadTypeName(preloadType)} thread=${Thread.currentThread().name} url=$url"
+                )
+            }
+        })
+    }
+
+    private fun preloadTypeName(preloadType: Int): String {
+        return when (preloadType) {
+            PlayerManager.PRELOAD_TYPE_MEMORY -> "MEMORY"
+            PlayerManager.PRELOAD_TYPE_DISK -> "DISK"
+            else -> "UNKNOWN($preloadType)"
         }
     }
 
@@ -46,6 +67,7 @@ class SPlayerApp : Application() {
 
     companion object {
         private const val TAG = "SPlayerApp"
-        private const val FEED_PLAYER_POOL_SIZE = 9
+        private const val PRELOAD_TAG = "SPlayerPreload"
+        private const val FEED_PLAYER_POOL_SIZE = 3
     }
 }
