@@ -91,10 +91,7 @@ class WelcomeActivity : AppCompatActivity() {
     }
 
     private fun startCacheWarmup() {
-//        PreloadCoordinator.preloadToMemory(VideoCatalog.videos[0].url)
-        PreloadCoordinator.preloadWindow(VideoCatalog.videos, INITIAL_VIDEO_INDEX, INITIAL_PRELOAD_RADIUS)
-
-//        PreloadCoordinator.preloadVideoListToDisk(VideoCatalog.videos)
+        PreloadCoordinator.scheduleStartup(VideoCatalog.videos, INITIAL_VIDEO_INDEX)
     }
 
     private fun openPlayer() {
@@ -129,6 +126,5 @@ class WelcomeActivity : AppCompatActivity() {
     companion object {
         private const val LAUNCH_DELAY_MS = 2_000L
         private const val INITIAL_VIDEO_INDEX = 0
-        private  var INITIAL_PRELOAD_RADIUS = (VideoCatalog.videos.size-1)
     }
 }

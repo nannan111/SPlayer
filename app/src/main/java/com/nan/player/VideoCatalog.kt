@@ -3,28 +3,28 @@ package com.nan.player
 object VideoCatalog {
     val videos: List<VideoItem> = listOf(
         VideoItem(
-            title = "xgplayer demo",
-            description = "360p MP4",
-            url = "https://sf1-cdn-tos.huoshanstatic.com/obj/media-fe/xgplayer_doc_video/mp4/xgplayer-demo-360p.mp4",
-            duration = "00:20"
+            title = "cctv",
+            description = "m3u84",
+            url = "https://newcntv.qcloudcdn.com/asp/hls/450/0303000a/3/default/6432ffb596d74a26a7589e0c14e60989/450.m3u8",
+            duration = ""
         ),
         VideoItem(
             title = "Local oceans",
             description = "Asset MP4",
             url = "file:///android_asset/oceans.mp4",
-            duration = "00:20"
+            duration = ""
         ),
         VideoItem(
             title = "news ",
-            description = "HTTP MP4",
+            description = "m3u8",
             url = "https://hls.cntv.lxdns.com/asp/hls/1200/0303000a/3/default/a8d0c954fc5d4e118611e90db1e42ce9/1200.m3u8",
-            duration = "00:20"
+            duration = ""
         ),
         VideoItem(
-            title = "Shandong TV",
-            description = "H.264 MP4",
+            title = "cctv 1",
+            description = "m3u8",
             url = "https://hls.cntv.lxdns.com/asp/hls/450/0303000a/3/default/4410d481e3074b689d0ee61bc5d844f3/450.m3u8",
-            duration = "05:32"
+            duration = ""
         ),
         VideoItem(
             title = "Asset MVI",
@@ -34,13 +34,19 @@ object VideoCatalog {
         ),
         VideoItem(
             title = "Movie 1",
-            description = "HLS",
+            description = "m3u8",
             url = "https://hn.bfvvs.com/play/eZ6OlEEe/index.m3u8",
             duration = "--:--"
         ),
         VideoItem(
-            title = "Movie 2",
+            title = "CNTV HLS 1",
             description = "HLS",
+            url = "https://hls.cntv.lxdns.com/asp/hls/main/0303000a/3/default/bb2347548ea44c7c826078330dcf191f/main.m3u8?maxbr=2048",
+            duration = "--:--"
+        ),
+        VideoItem(
+            title = "Movie 2",
+            description = "m3u8",
             url = "https://hn.bfvvs.com/play/YerKQQ2a/index.m3u8",
             duration = "--:--"
         ),
@@ -50,12 +56,7 @@ object VideoCatalog {
             url = "https://hn.bfvvs.com/play/aM88j3Ge/index.m3u8",
             duration = "--:--"
         ),
-        VideoItem(
-            title = "CNTV HLS 1",
-            description = "HLS",
-            url = "https://hls.cntv.lxdns.com/asp/hls/main/0303000a/3/default/bb2347548ea44c7c826078330dcf191f/main.m3u8?maxbr=2048",
-            duration = "--:--"
-        ),
+
         VideoItem(
             title = "CNTV MP4",
             description = "MP4",

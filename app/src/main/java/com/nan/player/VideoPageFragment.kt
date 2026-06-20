@@ -460,9 +460,9 @@ class VideoPageFragment : Fragment() {
                     resizeSurfaceView(player?.videoWidth ?: 0, player?.videoHeight ?: 0)
                     hideLoading()
                     startPlaybackIfReady()
-                } else if (state == PlayerState.COMPLETED && playbackActive) {
-                    player?.seekTo(0L)
-                    startPlaybackIfReady()
+                } else if (state == PlayerState.COMPLETED) {
+                    Log.i(TAG, "Playback completed, release player position=$pagePosition")
+                    view?.post { releasePlayback() }
                 }
             }
 

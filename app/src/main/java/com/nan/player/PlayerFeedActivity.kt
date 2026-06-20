@@ -36,7 +36,7 @@ class PlayerFeedActivity : AppCompatActivity(), VideoPageFragment.Callbacks {
         setupContentView()
 
         currentIndex = savedInstanceState?.getInt(KEY_CURRENT_INDEX)?.coerceIn(videos.indices) ?: 0
-//        preloadAround(currentIndex)
+        PreloadCoordinator.scheduleForPlayback(videos, currentIndex)
         viewPager.setCurrentItem(currentIndex, false)
         viewPager.post {
             updatePlaybackWindow(currentIndex)
@@ -211,19 +211,9 @@ class PlayerFeedActivity : AppCompatActivity(), VideoPageFragment.Callbacks {
     }
 
     private fun preloadAround(centerIndex: Int) {
-        Log.i("PlayerFeedActivity","centerIndex=$centerIndex--lastPreloadCenterIndex=$lastPreloadCenterIndex")
-//        if (centerIndex !in videos.indices || lastPreloadCenterIndex == centerIndex) return
-//        lastPreloadCenterIndex = centerIndex
-//        PreloadCoordinator.preloadWindow(videos, centerIndex, PRELOAD_RADIUS)
-        if(centerIndex>lastPreloadCenterIndex){
-            if(videos.size>centerIndex+1) {
-                PreloadCoordinator.preloadToMemory(videos[centerIndex + 1].url)
-            }
-        }else{
-            if(centerIndex-1>-1) {
-                PreloadCoordinator.preloadToMemory(videos[centerIndex - 1].url)
-            }
-        }
+        if (centerIndex !in videos.indices || lastPreloadCenterIndex == centerIndex) return
+        Log.i("PlayerFeedActivity", "preload center=$centerIndex last=$lastPreloadCenterIndex")
+        PreloadCoordinator.scheduleForPlayback(videos, centerIndex)
         lastPreloadCenterIndex = centerIndex
     }
 

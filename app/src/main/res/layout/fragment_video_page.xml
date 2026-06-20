@@ -76,7 +76,6 @@
         android:layout_gravity="bottom|start"
         android:layout_marginStart="18dp"
         android:layout_marginEnd="92dp"
-        android:visibility="gone"
         android:layout_marginBottom="70dp"
         android:orientation="vertical">
 
@@ -92,7 +91,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:maxLines="2"
-            android:visibility="gone"
             android:textColor="@android:color/white"
             android:textSize="24sp" />
 
@@ -101,7 +99,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:maxLines="2"
-            android:visibility="gone"
             android:textColor="#D2FFFFFF"
             android:textSize="15sp" />
     </LinearLayout>
