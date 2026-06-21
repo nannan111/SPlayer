@@ -135,7 +135,7 @@ class PlayerFeedActivity : AppCompatActivity(), VideoPageFragment.Callbacks {
         adapter = VideoFeedAdapter(this, videos)
         viewPager = ViewPager2(this).apply {
             orientation = ViewPager2.ORIENTATION_VERTICAL
-            offscreenPageLimit = PRELOAD_RADIUS.coerceAtMost((videos.size - 1).coerceAtLeast(1))
+            offscreenPageLimit = PAGE_OFFSCREEN_LIMIT.coerceAtMost((videos.size - 1).coerceAtLeast(1))
             adapter = this@PlayerFeedActivity.adapter
             setBackgroundColor(Color.BLACK)
         }
@@ -155,8 +155,9 @@ class PlayerFeedActivity : AppCompatActivity(), VideoPageFragment.Callbacks {
                 positionOffset: Float,
                 positionOffsetPixels: Int
             ) {
-
-
+                if (positionOffset > 0f) {
+                    updatePlaybackDuringScroll(position, positionOffset)
+                }
             }
 
             override fun onPageSelected(position: Int) {
@@ -199,13 +200,13 @@ class PlayerFeedActivity : AppCompatActivity(), VideoPageFragment.Callbacks {
         adapter.fragmentsSnapshot().forEach { (index, fragment) ->
             if (index !in activeIndexes) return@forEach
 
-            val canCreateWithoutJank = shouldCreatePlayer(index, surfaceCenterIndex)
+            val canCreatePlayer = shouldCreatePlayer(index, surfaceCenterIndex)
             val canPlayDuringScroll = index == currentIndex || PreloadCoordinator.isPreloaded(videos[index])
             fragment.setPlaybackActive(
                 active = true,
                 playWhenReady = index in visiblePlaybackIndexes && canPlayDuringScroll,
                 muted = index != currentIndex,
-                allowCreatePlayer = canCreateWithoutJank
+                allowCreatePlayer = canCreatePlayer
             )
         }
     }
@@ -218,7 +219,7 @@ class PlayerFeedActivity : AppCompatActivity(), VideoPageFragment.Callbacks {
     }
 
     private fun shouldCreatePlayer(index: Int, centerIndex: Int): Boolean {
-        return index == centerIndex || PreloadCoordinator.isPreloaded(videos[index])
+        return index in activeIndexes(centerIndex)
     }
 
     private fun pauseActivePlayers() {
@@ -263,7 +264,7 @@ class PlayerFeedActivity : AppCompatActivity(), VideoPageFragment.Callbacks {
 
     companion object {
         private const val KEY_CURRENT_INDEX = "current_index"
-        private const val PRELOAD_RADIUS = 4
+        private const val PAGE_OFFSCREEN_LIMIT = 1
         private const val ACTIVE_SURFACE_RADIUS = 1
         private const val SCROLL_PLAY_THRESHOLD = 0.02f
     }
