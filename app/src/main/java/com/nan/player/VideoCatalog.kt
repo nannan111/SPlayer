@@ -27,12 +27,6 @@ object VideoCatalog {
             duration = ""
         ),
         VideoItem(
-            title = "Asset MVI",
-            description = "Local asset",
-            url = "file:///android_asset/mvi.MVI",
-            duration = "--:--"
-        ),
-        VideoItem(
             title = "Movie 1",
             description = "m3u8",
             url = "https://hn.bfvvs.com/play/eZ6OlEEe/index.m3u8",

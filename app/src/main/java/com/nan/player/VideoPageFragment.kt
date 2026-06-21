@@ -334,7 +334,7 @@ class VideoPageFragment : Fragment() {
     }
 
     fun showCenterState(isPlaying: Boolean) {
-        centerPlayIcon.visibility = if (isPlaying) View.GONE else View.VISIBLE
+//        centerPlayIcon.visibility = if (isPlaying) View.GONE else View.VISIBLE
     }
 
     private fun bindViews(root: View) {
