@@ -4,6 +4,12 @@ SPlayer 是 SuperPlayer SDK 的 Android 示例工程，包名为 `com.nan.player
 
 这个工程只接入 SDK 产物，不依赖播放器 C++ 源码。当前 SDK 以 `app/libs/superPlayer-release.aar` 的形式引入。
 
+## APK 下载
+
+[下载 app-release-unsigned.apk](./release/app-release-unsigned.apk?raw=1)
+
+说明：当前 APK 为未签名 release 包，仅用于测试安装和功能体验。
+
 ## 工程定位
 
 | 模块 | 作用 |
@@ -306,4 +312,3 @@ SuperPlayer SDK 侧核心能力：
 - 离线下载完成的视频，播放前优先使用 `VideoDownloadManager.getLocalPlayUrl(url)`。
 - 页面退出时要区分“解绑 Surface”和“释放播放器”。列表快速切换通常只解绑，应用退出再释放。
 - 需要展示当前码率和帧率时，播放中定时读取 `getPlaybackStats()`。
-
