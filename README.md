@@ -6,9 +6,9 @@ SPlayer 是 SuperPlayer SDK 的 Android 示例工程，包名为 `com.nan.player
 
 ## APK 下载
 
-[下载 app-release-unsigned.apk](./release/app-release-unsigned.apk?raw=1)
+[下载 app-release.apk](./release/app-release.apk?raw=1)
 
-说明：当前 APK 为未签名 release 包，仅用于测试安装和功能体验。
+说明：当前 APK 使用 debug key 签名，仅用于测试安装和功能体验，不用于正式发布。
 
 ## 工程定位
 
